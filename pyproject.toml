@@ -1,0 +1,32 @@
+[project]
+name = "nexus-cli"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "David Schote", email = "david.schote@ptb.de" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "nexus-console",
+    "typer>=0.27.2",
+]
+
+[project.scripts]
+nexus-cli = "nexus_cli.main:app"
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+nexus-console = { path = "../nexus-console", editable = true }
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.3.0",
+    "ruff>=0.16.7",
+]
+
+[tool.uv]
+config-settings = { editable_mode = "compat" }

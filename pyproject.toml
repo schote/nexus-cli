@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "nexus-console",
+    "python-dotenv",
     "typer>=0.27.2",
 ]
 

@@ -70,8 +70,6 @@ def calibrate_larmor_frequency(show_plot: bool = True, min_snr: float = 20.) -> 
         msg = f"SNR of {snr} dB too low to adjust frequency. Please adjust manually."
         warnings.warn(msg, UserWarning)
 
-    # TODO: Save calibration data
-
     if show_plot:
         time_axis = np.arange(data.size)*acq_data.receive_data[0].dwell_time*1e3
         _, ax = plt.subplots(1, 2, figsize=(12, 5))

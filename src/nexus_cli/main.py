@@ -1,6 +1,6 @@
 from typer import Typer, Option
 
-from nexus_cli import calibrations
+from nexus_cli import calibrations, parameter
 from nexus_cli.utilities.io import load_mrd_header
 from pathlib import Path
 
@@ -13,6 +13,7 @@ from pypulseq import Sequence
 app = Typer(help="Nexus Console CLI")
 
 app.add_typer(calibrations.app, name="calibrate")
+app.add_typer(parameter.app, name="parameter")
 
 @app.command(name="device-config")
 def get_device_config():

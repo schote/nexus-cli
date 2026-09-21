@@ -22,3 +22,20 @@ def load_mrd_header(header_path: Path) -> ismrmrd.xsd.ismrmrdHeader:
     xml_header = dataset.read_xml_header()
     header = ismrmrd.xsd.CreateFromDocument(xml_header)
     return header
+
+def ensure_valid_seq_file(path: Path) -> None:
+    """Ensure that sequence file is valid.
+
+    Parameters
+    ----------
+    path
+        Path to sequence file
+
+    Raises
+    ------
+    ValueError
+        Invalid file suffix.
+
+    """
+    if path.suffix != ".seq":
+        raise ValueError("Invalid sequence file, `.seq` file required.")

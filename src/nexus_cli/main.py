@@ -9,6 +9,7 @@ import console
 from nexus_service.acquisition_manager import AcquisitionControlManager
 from console.interfaces.acquisition_data import AcquisitionData
 from pypulseq import Sequence
+from nexus_cli.utilities.io import ensure_valid_seq_file
 
 import matplotlib
 
@@ -61,3 +62,31 @@ def run_sequence(
                 header=load_mrd_header(_header_path),
                 user_path=str(export_dir),
             )
+
+@app.command(name="plot-sequence")
+def plot_sequence(
+    path: str = Option(help="Path to pypulseq sequence file."),
+    plot_unrolled: bool = Option(False, help="True -> unrolled sequence, False -> pulseq sequence"),
+):
+    """Plot sequence.
+
+    Parameters
+    ----------
+    path, optional
+        Sequence path, by default Option(help="Path to pypulseq sequence file.")
+    plot_unrolled, optional
+        Plot unrolled or pulseq sequence, by default Option(False, help="True -> unrolled sequence, False -> pulseq sequence")
+
+    """
+    seq_path = Path(path)
+    ensure_valid_seq_file(seq_path)
+    with AcquisitionControlManager() as m:
+        seq = Sequence(system=m.acquisition.get_sequence_system())
+        seq.read(seq_path)
+        dur = round(seq.duration()[0], 4)
+        print(f"Loaded sequence with duration: {dur} s")
+        if plot_unrolled:
+            m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
+            m.acquisition.plot_waveforms()
+        else:
+            seq.plot()

@@ -10,6 +10,7 @@ from nexus_service.acquisition_manager import AcquisitionControlManager
 from console.interfaces.acquisition_data import AcquisitionData
 from pypulseq import Sequence
 from nexus_cli.utilities.io import ensure_valid_seq_file
+from nexus_cli.utilities import plotting
 
 import matplotlib
 
@@ -89,4 +90,5 @@ def plot_sequence(
             m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
             m.acquisition.plot_waveforms()
         else:
-            seq.plot()
+            seq.plot(plot_now=False)  # shown by the detached viewer below
+    plotting.show()

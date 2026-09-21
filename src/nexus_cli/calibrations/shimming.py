@@ -13,6 +13,7 @@ from console.utilities.sequences.spectrometry import fid
 from console.utilities.snr import signal_to_noise_ratio
 from nexus_service.acquisition_manager import AcquisitionControlManager
 from nexus_cli.calibrations import app
+from nexus_cli.utilities import plotting
 
 def run_fid(f0: float, shims: Dimensions, seq) -> AcquisitionData:
     """Acquire a single FID with the given Larmor frequency and gradient offsets.
@@ -217,4 +218,4 @@ def calibrate_shimming(
         ax[2].plot(amp_data)
         ax[2].set_xlabel("Iteration")
         ax[2].set_ylabel("Peak amplitude / mV")
-        plt.show()
+        plotting.show()

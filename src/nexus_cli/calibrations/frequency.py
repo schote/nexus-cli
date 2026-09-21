@@ -12,6 +12,7 @@ from console.utilities.snr import signal_to_noise_ratio
 from nexus_service.acquisition_manager import AcquisitionControlManager
 
 from nexus_cli.calibrations import app
+from nexus_cli.utilities import plotting
 
 
 @app.command(name="f0")
@@ -83,4 +84,4 @@ def calibrate_larmor_frequency(show_plot: bool = True, min_snr: float = 20.) -> 
         ax[1].set_ylim([0, max_spec * 1.05])
         ax[1].set_ylabel("Abs. FFT Spectrum [a.u.]")
         ax[1].set_xlabel("Frequency [Hz]")
-        plt.show()
+        plotting.show()

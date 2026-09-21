@@ -68,6 +68,8 @@ The CLI runs next to the Nexus console service and needs to be installed on the 
 
 The CLI must run on the console, next to the Nexus service. However, we can use it via SSH and display the matplotlib windows on the client via X11 forwarding.
 
+Plots are opened by a separate viewer process: the CLI command returns as soon as the acquisition is done and the plot windows stay open (also across commands and after logging out) until you close them.
+
 ```mermaid
 %%{init: {
   "themeVariables": { "fontFamily": "Inter, Segoe UI, Helvetica Neue, Arial, sans-serif", "fontSize": "14px" },

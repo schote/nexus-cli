@@ -11,6 +11,7 @@ from console.utilities.sequences.spectrometry import fid
 from scipy.signal import find_peaks
 
 from nexus_cli.calibrations import app
+from nexus_cli.utilities import plotting
 
 
 def fa_model(samples: np.ndarray, amp: float, efficiency: float, damping: float, noise: float) -> np.ndarray:
@@ -128,4 +129,4 @@ def calibrate_flip_angle(
         ax.legend()
         ax.set_ylabel("Signal integral")
         ax.set_xlabel("Flip angle / °")
-        plt.show()
+        plotting.show()

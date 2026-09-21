@@ -10,6 +10,11 @@ from nexus_service.acquisition_manager import AcquisitionControlManager
 from console.interfaces.acquisition_data import AcquisitionData
 from pypulseq import Sequence
 
+import matplotlib
+
+# The CLI process never opens windows itself; figures are shown by a detached viewer (utilities/plotting.py).
+matplotlib.use("Agg")
+
 app = Typer(help="Nexus Console CLI")
 
 app.add_typer(calibrations.app, name="calibrate")

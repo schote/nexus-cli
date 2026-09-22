@@ -39,3 +39,20 @@ def ensure_valid_seq_file(path: Path) -> None:
     """
     if path.suffix != ".seq":
         raise ValueError("Invalid sequence file, `.seq` file required.")
+
+def ensure_valid_header_file(path: Path) -> None:
+    """Ensure that ismrmrd header file is valid.
+
+    Parameters
+    ----------
+    path
+        Path to header file
+
+    Raises
+    ------
+    ValueError
+        Invalid file suffix.
+
+    """
+    if path.suffix != ".xml":
+        raise ValueError("Invalid header file, `.xml` file required.")

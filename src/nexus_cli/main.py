@@ -2,20 +2,18 @@ from typer import Typer, Option
 
 from nexus_cli import calibrations, parameter
 from nexus_cli.utilities.io import load_mrd_header
+from nexus_cli.utilities.protocol import Protocol, SequenceStep, PauseStep
 from pathlib import Path
+from time import sleep
 
 import console
 
 from nexus_service.acquisition_manager import AcquisitionControlManager
 from console.interfaces.acquisition_data import AcquisitionData
 from pypulseq import Sequence
-from nexus_cli.utilities.io import ensure_valid_seq_file
-from nexus_cli.utilities import plotting
-
-import matplotlib
-
-# The CLI process never opens windows itself; figures are shown by a detached viewer (utilities/plotting.py).
-matplotlib.use("Agg")
+from nexus_cli.utilities.io import ensure_valid_seq_file, ensure_valid_header_file
+from rich.progress import Progress
+from rich.console import Console
 
 app = Typer(help="Nexus Console CLI")
 
@@ -34,8 +32,8 @@ def get_sequence_system():
 
 @app.command(name="run-sequence")
 def run_sequence(
-    path: str = Option(help="Path to pypulseq sequence file."),
-    mrd_header_path: str | None = Option(None, help="Path to the ISMRMRD header file, if available."),
+    path: str | Path = Option(help="Path to pypulseq sequence file."),
+    mrd_header_path: str | Path | None = Option(None, help="Path to the ISMRMRD header file, if available."),
     export_dir: Path = Option(envvar="NEXUS_EXPORT_DIR", help="Directory for exported acquisition data."),
 ):
     """Run a pypulseq sequence file on the scanner.
@@ -45,24 +43,25 @@ def run_sequence(
     When `--mrd-header-path` points to an ISMRMRD XML header the acquisition data is
     saved as an ISMRMRD file in `--export-dir` (or `NEXUS_EXPORT_DIR`).
     """
-    if (_seq_path := Path(path)).suffix != ".seq":
-        raise ValueError("Invalid sequence file, `.seq` file required.")
+    seq_path = Path(path)
+    ensure_valid_seq_file(seq_path)
+    with Progress() as progress:
+        with AcquisitionControlManager() as m:
+            seq = Sequence(system=m.acquisition.get_sequence_system())
+            seq.read(seq_path)
+            dur = round(seq.duration()[0], 4)
+            print(f"Running sequence {seq_path.name} with duration: {dur} s")
+            m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
 
-    with AcquisitionControlManager() as m:
-        seq = Sequence(system=m.acquisition.get_sequence_system())
-        seq.read(_seq_path)
-        dur = round(seq.duration()[0], 4)
-        print(f"Loaded sequence with duration: {dur} s")
-        m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
-        acq_data: AcquisitionData = m.acquisition.run()
+            task = progress.add_task("Acquisition", total=100)
+            def on_progress(value: float) -> None:
+                progress.update(task, completed=value)
+            acq_data: AcquisitionData = m.acquisition.run(progress_callback=on_progress)
 
-        if mrd_header_path is not None:
-            if (_header_path := Path(mrd_header_path)).suffix != ".xml":
-                raise ValueError("Invalid header file, `.h5` file expected.")
-            acq_data.save_ismrmrd(
-                header=load_mrd_header(_header_path),
-                user_path=str(export_dir),
-            )
+            if mrd_header_path is not None:
+                header_path = Path(mrd_header_path)
+                ensure_valid_header_file(header_path)
+                acq_data.save_ismrmrd(header=load_mrd_header(header_path), user_path=str(export_dir))
 
 @app.command(name="plot-sequence")
 def plot_sequence(
@@ -85,10 +84,32 @@ def plot_sequence(
         seq = Sequence(system=m.acquisition.get_sequence_system())
         seq.read(seq_path)
         dur = round(seq.duration()[0], 4)
-        print(f"Loaded sequence with duration: {dur} s")
+        print(f"Running sequence {seq_path.name} with duration: {dur} s")
+
         if plot_unrolled:
             m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
             m.acquisition.plot_waveforms()
         else:
-            seq.plot(plot_now=False)  # shown by the detached viewer below
-    plotting.show()
+            seq.plot()
+
+@app.command(name="run-protocol")
+def run_protocol(path: str = Option(help="Path to protocol json file.")):
+    """Run a protocol which consists of multiple sequences.
+
+    The protocol is defined in json format.
+
+    Parameters
+    ----------
+    path, optional
+        Path to procotol json file, by default Option(help="Path to protocol json file.")
+
+    """
+    protocol = Protocol.load(path)
+    for step in protocol.steps:
+        match step:
+            case SequenceStep():
+                run_sequence(step.sequence, step.header)
+            case PauseStep():
+                if step.duration is not None:
+                    with Console().status(f"{step.message}..."):
+                        sleep(step.duration)

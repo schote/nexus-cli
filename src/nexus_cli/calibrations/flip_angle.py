@@ -9,9 +9,9 @@ import numpy as np
 from nexus_service.acquisition_manager import AcquisitionControlManager
 from console.utilities.sequences.spectrometry import fid
 from scipy.signal import find_peaks
+from rich.progress import track
 
 from nexus_cli.calibrations import app
-from nexus_cli.utilities import plotting
 
 
 def fa_model(samples: np.ndarray, amp: float, efficiency: float, damping: float, noise: float) -> np.ndarray:
@@ -71,7 +71,8 @@ def calibrate_flip_angle(
     flip_angles = np.round(np.linspace(start, stop, steps))
     num_samples = 1000
     # Data acquisition
-    for k, flip in enumerate(flip_angles):
+
+    for k, flip in track(enumerate(flip_angles), description="B1 calibration"):
 
         print(f"Acquiring acquisition data... flip angle: {flip}°, {k+1}/{steps}", end="\r")
 
@@ -129,4 +130,5 @@ def calibrate_flip_angle(
         ax.legend()
         ax.set_ylabel("Signal integral")
         ax.set_xlabel("Flip angle / °")
-        plotting.show()
+        plt.show(block=False)
+    print("Done.")

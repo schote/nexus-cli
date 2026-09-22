@@ -771,13 +771,23 @@ dependencies = [
 requires-dist = [
     { name = "codecov", marker = "extra == 'test'" },
     { name = "coverage", marker = "extra == 'test'" },
+    { name = "griffe", marker = "extra == 'docs-mkdocs'", specifier = ">=0.47.0" },
     { name = "h5py" },
     { name = "ipykernel", marker = "extra == 'dev'" },
     { name = "ipython", marker = "extra == 'dev'" },
     { name = "ipywidgets", marker = "extra == 'dev'" },
     { name = "ismrmrd", specifier = "<1.15.0" },
+    { name = "line-profiler", marker = "extra == 'docs-mkdocs'" },
     { name = "line-profiler", extras = ["ipython"], marker = "extra == 'dev'" },
+    { name = "markdown-exec", extras = ["ansi"], marker = "extra == 'docs-mkdocs'", specifier = ">=1.9.0" },
     { name = "matplotlib" },
+    { name = "mike", marker = "extra == 'docs-mkdocs'", specifier = ">=2.1.0" },
+    { name = "mkdocs-gen-files", marker = "extra == 'docs-mkdocs'", specifier = ">=0.5.0" },
+    { name = "mkdocs-jupyter", marker = "extra == 'docs-mkdocs'", specifier = ">=0.24.0" },
+    { name = "mkdocs-literate-nav", marker = "extra == 'docs-mkdocs'", specifier = ">=0.6.1" },
+    { name = "mkdocs-material", marker = "extra == 'docs-mkdocs'", specifier = ">=9.5.0" },
+    { name = "mkdocs-section-index", marker = "extra == 'docs-mkdocs'", specifier = ">=0.3.9" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs-mkdocs'", specifier = ">=0.27.0" },
     { name = "mypy", marker = "extra == 'lint'" },
     { name = "nbformat", marker = "extra == 'dev'", specifier = ">=4.2.0" },
     { name = "numpy" },
@@ -785,6 +795,7 @@ requires-dist = [
     { name = "plotly" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydata-sphinx-theme", marker = "extra == 'docs'" },
+    { name = "pymdown-extensions", marker = "extra == 'docs-mkdocs'", specifier = ">=10.7.0" },
     { name = "pypulseq" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pytest-cov", marker = "extra == 'test'" },
@@ -796,7 +807,7 @@ requires-dist = [
     { name = "sphinx-pyproject", marker = "extra == 'docs'" },
     { name = "types-pyyaml", marker = "extra == 'lint'" },
 ]
-provides-extras = ["test", "lint", "docs", "dev"]
+provides-extras = ["test", "lint", "docs", "docs-mkdocs", "dev"]
 
 [[package]]
 name = "numpy"

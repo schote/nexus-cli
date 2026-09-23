@@ -8,10 +8,10 @@ from console.interfaces.acquisition_data import AcquisitionData
 from nexus_service.acquisition_manager import AcquisitionControlManager
 from pypulseq import Sequence
 from rich.console import Console
-from rich.progress import Progress
 from typer import Option, Typer
 
-from nexus_cli import calibrations, parameter
+from nexus_cli import calibrations, parameter, system_tests
+from nexus_cli.utilities.acquisition import run_acquisition
 from nexus_cli.utilities.io import ensure_valid_header_file, ensure_valid_seq_file, load_mrd_header
 from nexus_cli.utilities.protocol import PauseStep, Protocol, SequenceStep
 
@@ -19,6 +19,7 @@ app = Typer(help="Nexus Console CLI")
 
 app.add_typer(calibrations.app, name="calibrate")
 app.add_typer(parameter.app, name="parameter")
+app.add_typer(system_tests.app, name="tests")
 
 @app.command(name="device-config")
 def get_device_config():
@@ -47,23 +48,18 @@ def run_sequence(
     """
     seq_path = Path(path)
     ensure_valid_seq_file(seq_path)
-    with Progress() as progress:
-        with AcquisitionControlManager() as m:
-            seq = Sequence(system=m.acquisition.get_sequence_system())
-            seq.read(seq_path)
-            dur = round(seq.duration()[0], 4)
-            print(f"Running sequence {seq_path.name} with duration: {dur} s")
-            m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
+    with AcquisitionControlManager() as m:
+        seq = Sequence(system=m.acquisition.get_sequence_system())
+        seq.read(seq_path)
+        dur = round(seq.duration()[0], 4)
+        print(f"Running sequence {seq_path.name} with duration: {dur} s")
+        m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
+        acq_data: AcquisitionData = run_acquisition(m.acquisition)
 
-            task = progress.add_task("Acquisition", total=100)
-            def on_progress(value: float) -> None:
-                progress.update(task, completed=value)
-            acq_data: AcquisitionData = m.acquisition.run(progress_callback=on_progress)
-
-            if mrd_header_path is not None:
-                header_path = Path(mrd_header_path)
-                ensure_valid_header_file(header_path)
-                acq_data.save_ismrmrd(header=load_mrd_header(header_path), user_path=str(export_dir))
+        if mrd_header_path is not None:
+            header_path = Path(mrd_header_path)
+            ensure_valid_header_file(header_path)
+            acq_data.save_ismrmrd(header=load_mrd_header(header_path), user_path=str(export_dir))
 
 @app.command(name="plot-sequence")
 def plot_sequence(

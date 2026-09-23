@@ -26,8 +26,39 @@ nexus-console = { path = "../nexus-console", editable = true }
 [dependency-groups]
 dev = [
     "ipykernel>=7.3.0",
+    "mypy",
     "ruff>=0.16.7",
+    "types-PyYAML",
 ]
 
 [tool.uv]
 config-settings = { editable_mode = "compat" }
+
+[tool.mypy]
+files = ["src/nexus_cli"]
+warn_return_any = false
+check_untyped_defs = true
+warn_no_return = true
+warn_unreachable = true
+python_version = "3.13"
+ignore_missing_imports = true
+
+[tool.ruff]
+src = ["src"]
+line-length = 120
+indent-width = 4
+target-version = "py313"
+
+[tool.ruff.lint]
+# E = pycodestyle (error)
+# W = pycodestyle (warning)
+# F = Pyflakes
+# S = flake8-bandit
+# I = isort
+# N = pep8-naming
+# D = pydocstyle
+# NPY = numpy specific rules
+select = ["E", "W", "F", "S", "I", "N", "D", "NPY"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

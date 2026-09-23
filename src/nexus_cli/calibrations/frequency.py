@@ -8,7 +8,6 @@ import numpy as np
 from console.interfaces.acquisition_data import AcquisitionData
 from console.utilities.sequences.spectrometry import se_spectrum
 from console.utilities.snr import signal_to_noise_ratio
-
 from nexus_service.acquisition_manager import AcquisitionControlManager
 
 from nexus_cli.calibrations import app
@@ -21,18 +20,26 @@ def calibrate_larmor_frequency(show_plot: bool = True, min_snr: float = 20.) -> 
     Acquires a single spin-echo spectrum, computes the FFT, and determines the
     frequency offset between the spectral peak and the current Larmor frequency.
     If the measured SNR meets or exceeds `min_snr` the offset is applied to
-    `console.parameter.larmor_frequency`. Otherwise a `UserWarning` is raised and
+    `console.parameter.larmor_frequency`. Otherwise a `UserWarning` is issued and
     the frequency is left unchanged.
 
-    Args:
-        show_plot: When `True`, display a two-panel figure with the time-domain
-            signal and the magnitude frequency spectrum.
-        min_snr: Minimum SNR in dB required to apply the frequency correction.
-            Defaults to 20 dB.
+    Parameters
+    ----------
+    show_plot
+        When `True`, display a two-panel figure with the time-domain signal and
+        the magnitude frequency spectrum, by default `True`.
+    min_snr
+        Minimum SNR in dB required to apply the frequency correction, by default 20 dB.
 
-    Raises:
-        ValueError: If the acquisition returns no receive data.
-        UserWarning: If the measured SNR is below `min_snr`.
+    Raises
+    ------
+    ValueError
+        If the acquisition returns no receive data.
+
+    Warns
+    -----
+    UserWarning
+        If the measured SNR is below `min_snr`.
 
     """
     current_f0 = console.parameter.larmor_frequency
@@ -61,7 +68,8 @@ def calibrate_larmor_frequency(show_plot: bool = True, min_snr: float = 20.) -> 
 
     print(f"Frequency offset [Hz]: {f_0_offset}\nNew frequency f0 [Hz]: {current_f0 + f_0_offset}")
     print(f"Frequency spectrum max.: {max_spec}")
-    print(f"Number of samples: {acq_data.receive_data[0].num_samples} ({acq_data.receive_data[0].num_samples_raw} raw samples)")
+    rx_data = acq_data.receive_data[0]
+    print(f"Number of samples: {rx_data.num_samples} ({rx_data.num_samples_raw} raw samples)")
     print("SNR [dB]: ", snr)
 
     if snr >= min_snr:

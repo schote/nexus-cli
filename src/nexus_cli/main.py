@@ -1,19 +1,19 @@
-from typer import Typer, Option
-
-from nexus_cli import calibrations, parameter
-from nexus_cli.utilities.io import load_mrd_header
-from nexus_cli.utilities.protocol import Protocol, SequenceStep, PauseStep
+"""Entry point of the Nexus CLI with system, sequence and protocol commands."""
 from pathlib import Path
 from time import sleep
 
 import console
-
-from nexus_service.acquisition_manager import AcquisitionControlManager
+import matplotlib.pyplot as plt
 from console.interfaces.acquisition_data import AcquisitionData
+from nexus_service.acquisition_manager import AcquisitionControlManager
 from pypulseq import Sequence
-from nexus_cli.utilities.io import ensure_valid_seq_file, ensure_valid_header_file
-from rich.progress import Progress
 from rich.console import Console
+from rich.progress import Progress
+from typer import Option, Typer
+
+from nexus_cli import calibrations, parameter
+from nexus_cli.utilities.io import ensure_valid_header_file, ensure_valid_seq_file, load_mrd_header
+from nexus_cli.utilities.protocol import PauseStep, Protocol, SequenceStep
 
 app = Typer(help="Nexus Console CLI")
 
@@ -22,18 +22,20 @@ app.add_typer(parameter.app, name="parameter")
 
 @app.command(name="device-config")
 def get_device_config():
+    """Print the device configuration loaded by the running Nexus service."""
     with AcquisitionControlManager() as m:
         print(m.acquisition.get_device_configuration())
 
 @app.command(name="sequence-system")
 def get_sequence_system():
+    """Print the PyPulseq system limits derived from the device configuration."""
     with AcquisitionControlManager() as m:
         print(m.acquisition.get_sequence_system())
 
 @app.command(name="run-sequence")
 def run_sequence(
-    path: str | Path = Option(help="Path to pypulseq sequence file."),
-    mrd_header_path: str | Path | None = Option(None, help="Path to the ISMRMRD header file, if available."),
+    path: Path = Option(help="Path to pypulseq sequence file."),
+    mrd_header_path: Path | None = Option(None, help="Path to the ISMRMRD header file, if available."),
     export_dir: Path = Option(envvar="NEXUS_EXPORT_DIR", help="Directory for exported acquisition data."),
 ):
     """Run a pypulseq sequence file on the scanner.
@@ -68,14 +70,15 @@ def plot_sequence(
     path: str = Option(help="Path to pypulseq sequence file."),
     plot_unrolled: bool = Option(False, help="True -> unrolled sequence, False -> pulseq sequence"),
 ):
-    """Plot sequence.
+    """Plot a pypulseq sequence file.
 
     Parameters
     ----------
-    path, optional
-        Sequence path, by default Option(help="Path to pypulseq sequence file.")
-    plot_unrolled, optional
-        Plot unrolled or pulseq sequence, by default Option(False, help="True -> unrolled sequence, False -> pulseq sequence")
+    path
+        Path to the pypulseq sequence file (`.seq`).
+    plot_unrolled
+        When `True`, plot the waveforms unrolled by the Nexus service, otherwise plot
+        the pulseq sequence, by default `False`.
 
     """
     seq_path = Path(path)
@@ -90,26 +93,34 @@ def plot_sequence(
             m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
             m.acquisition.plot_waveforms()
         else:
-            seq.plot()
+            seq.plot(show_blocks=False)
+        plt.show()
 
 @app.command(name="run-protocol")
-def run_protocol(path: str = Option(help="Path to protocol json file.")):
+def run_protocol(
+    path: str = Option(help="Path to protocol json file."),
+    export_dir: Path = Option(envvar="NEXUS_EXPORT_DIR", help="Directory for exported acquisition data."),
+):
     """Run a protocol which consists of multiple sequences.
 
     The protocol is defined in json format.
 
     Parameters
     ----------
-    path, optional
-        Path to procotol json file, by default Option(help="Path to protocol json file.")
+    path
+        Path to the protocol json file.
+    export_dir
+        Directory for the exported acquisition data, defaults to `NEXUS_EXPORT_DIR`.
 
     """
     protocol = Protocol.load(path)
     for step in protocol.steps:
         match step:
             case SequenceStep():
-                run_sequence(step.sequence, step.header)
+                run_sequence(path=step.sequence, mrd_header_path=step.header, export_dir=export_dir)
             case PauseStep():
-                if step.duration is not None:
-                    with Console().status(f"{step.message}..."):
+                with Console().status(f"{step.message}..."):
+                    if step.duration is not None:
+                        sleep(3)
+                    else:
                         sleep(step.duration)

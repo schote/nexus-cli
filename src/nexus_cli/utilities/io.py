@@ -5,21 +5,23 @@ import ismrmrd
 
 
 def load_mrd_header(header_path: Path) -> ismrmrd.xsd.ismrmrdHeader:
-    """Load and parse an ISMRMRD XML header from an HDF5 dataset file.
+    """Load and parse an ISMRMRD XML header file.
 
-    Opens the ISMRMRD dataset at `header_path`, reads the raw XML header string,
-    and parses it into a structured `ismrmrdHeader` object that can be passed to
+    Reads the raw XML header string from `header_path` and parses it into a
+    structured `ismrmrdHeader` object that can be passed to
     `AcquisitionData.save_ismrmrd()`.
 
-    Args:
-        header_path: Path to an ISMRMRD `.xml` header file.
+    Parameters
+    ----------
+    header_path
+        Path to an ISMRMRD `.xml` header file.
 
-    Returns:
+    Returns
+    -------
         A parsed `ismrmrd.xsd.ismrmrdHeader` object.
 
     """
-    dataset = ismrmrd.Dataset(header_path, 'w')
-    xml_header = dataset.read_xml_header()
+    xml_header = Path(header_path).read_text()
     header = ismrmrd.xsd.CreateFromDocument(xml_header)
     return header
 

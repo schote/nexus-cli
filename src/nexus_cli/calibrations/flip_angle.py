@@ -5,11 +5,10 @@ import time
 import console
 import matplotlib.pyplot as plt
 import numpy as np
-
-from nexus_service.acquisition_manager import AcquisitionControlManager
 from console.utilities.sequences.spectrometry import fid
-from scipy.signal import find_peaks
+from nexus_service.acquisition_manager import AcquisitionControlManager
 from rich.progress import track
+from scipy.signal import find_peaks
 
 from nexus_cli.calibrations import app
 
@@ -17,18 +16,24 @@ from nexus_cli.calibrations import app
 def fa_model(samples: np.ndarray, amp: float, efficiency: float, damping: float, noise: float) -> np.ndarray:
     """Sinusoidal model for the flip-angle calibration curve.
 
-    Models the measured FID signal integral as a damped sinusoid of the fli
+    Models the measured FID signal integral as a damped sinusoid of the flip
     angle, used for fitting the 90° operating point.
 
-    Args:
-        samples: Array of flip-angle values (in degrees or radians, consistent
-            with `efficiency`).
-        amp: Peak amplitude of the sinusoid.
-        efficiency: Angular efficiency factor (scales the argument of `sin`).
-        damping: Linear damping coefficient applied across the sample range.
-        noise: Constant noise floor offset.
+    Parameters
+    ----------
+    samples
+        Array of flip-angle values (in degrees or radians, consistent with `efficiency`).
+    amp
+        Peak amplitude of the sinusoid.
+    efficiency
+        Angular efficiency factor (scales the argument of `sin`).
+    damping
+        Linear damping coefficient applied across the sample range.
+    noise
+        Constant noise floor offset.
 
-    Returns:
+    Returns
+    -------
         Model signal values with the same shape as `samples`.
 
     """
@@ -52,19 +57,25 @@ def calibrate_flip_angle(
     The 90° operating point is identified from the peak of the integral curve
     and used to compute a correction factor for `console.parameter.b1_scaling`.
 
-    Args:
-        config: Nexus system configuration (connection and service settings).
-        start: First flip angle in the sweep (degrees). Defaults to 45.
-        stop: Last flip angle in the sweep (degrees). Defaults to 225.
-        steps: Number of equally spaced flip angles to measure. Defaults to 10.
-        delay: Delay between consecutive FID acquisitions (ms). Defaults to 2000.
-        center_window: Width of the spectral integration window around the
-            centre bin (samples). Defaults to 100.
-        show_plot: When `True`, display a stem plot of the signal integral vs.
-            flip angle. Defaults to `True`.
+    Parameters
+    ----------
+    start
+        First flip angle in the sweep (degrees), by default 45.
+    stop
+        Last flip angle in the sweep (degrees), by default 225.
+    steps
+        Number of equally spaced flip angles to measure, by default 10.
+    delay
+        Delay between consecutive FID acquisitions (ms), by default 2000.
+    center_window
+        Width of the spectral integration window around the centre bin (samples), by default 100.
+    show_plot
+        When `True`, display a scatter plot of the signal integral vs. flip angle, by default `True`.
 
-    Raises:
-        ValueError: If any acquisition returns no processed receive data.
+    Raises
+    ------
+    ValueError
+        If any acquisition returns no processed receive data.
 
     """
     acq_data = []

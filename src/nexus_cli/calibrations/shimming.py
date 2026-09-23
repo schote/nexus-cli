@@ -1,7 +1,6 @@
 """B0 shimming via iterative gradient offset optimisation."""
 # %%
 from copy import deepcopy
-from os import name
 
 import console
 import matplotlib.pyplot as plt
@@ -9,29 +8,38 @@ import numpy as np
 from console.interfaces.acquisition_data import AcquisitionData
 from console.interfaces.device_configuration import NexusConfiguration
 from console.interfaces.dimensions import Dimensions
+from console.interfaces.rx_data import RxData
 from console.utilities.sequences.spectrometry import fid
-from console.utilities.snr import signal_to_noise_ratio
 from nexus_service.acquisition_manager import AcquisitionControlManager
+from pypulseq import Sequence
+
 from nexus_cli.calibrations import app
 
-def run_fid(f0: float, shims: Dimensions, seq) -> AcquisitionData:
+
+def run_fid(f0: float, shims: Dimensions, seq: Sequence) -> RxData:
     """Acquire a single FID with the given Larmor frequency and gradient offsets.
 
     Temporarily overrides `console.parameter.larmor_frequency` and
     `console.parameter.gradient_offset` for the duration of the acquisition,
     then restores the original values regardless of success or failure.
 
-    Args:
-        config: Nexus system configuration (connection and service settings).
-        f0: Larmor frequency in Hz to use for this acquisition.
-        shims: Gradient offset values (x, y, z) in mV to apply.
-        seq: A pre-constructed pypulseq sequence object.
+    Parameters
+    ----------
+    f0
+        Larmor frequency in Hz to use for this acquisition.
+    shims
+        Gradient offset values (x, y, z) in mV to apply.
+    seq
+        A pre-constructed pypulseq sequence object.
 
-    Returns:
-        The `ReceiveData` object from the first receive channel.
+    Returns
+    -------
+        The `RxData` object from the first receive channel.
 
-    Raises:
-        ValueError: If `console.parameter` is `None`.
+    Raises
+    ------
+    ValueError
+        If `console.parameter` is `None`.
 
     """
     if console.parameter is None:
@@ -42,15 +50,38 @@ def run_fid(f0: float, shims: Dimensions, seq) -> AcquisitionData:
     console.parameter.larmor_frequency = f0
     console.parameter.gradient_offset = shims
 
-    with AcquisitionControlManager() as m:
-        m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
-        acq_data: AcquisitionData = m.acquisition.run()
-
-    # Restore the acquisition parameters
-    console.parameter.larmor_frequency = initial_f0
-    console.parameter.gradient_offset = initial_shim
+    try:
+        with AcquisitionControlManager() as m:
+            m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
+            acq_data: AcquisitionData = m.acquisition.run()
+    finally:
+        # Restore the acquisition parameters
+        console.parameter.larmor_frequency = initial_f0
+        console.parameter.gradient_offset = initial_shim
 
     return acq_data.receive_data[0]
+
+def get_signal(rx_data: RxData) -> np.ndarray:
+    """Return the squeezed processed signal of a receive event.
+
+    Parameters
+    ----------
+    rx_data
+        Receive data of a single acquisition.
+
+    Returns
+    -------
+        Processed (demodulated and decimated) signal with singleton dimensions removed.
+
+    Raises
+    ------
+    ValueError
+        If the receive data contains no processed data.
+
+    """
+    if rx_data.processed_data is None:
+        raise ValueError("No processed receive data available.")
+    return rx_data.processed_data.squeeze()
 
 @app.command(name="shims")
 def calibrate_shimming(
@@ -71,19 +102,23 @@ def calibrate_shimming(
     shim values (in mV) and `console.parameter.larmor_frequency` is updated to
     correct for the residual frequency offset observed in the shimmed FID.
 
-    Args:
-        start_range: Initial gradient-offset step size in normalised mT/m units.
-            Defaults to 0.1.
-        end_range: Stopping threshold; the optimisation exits when the step size
-            falls below this value. Defaults to 0.01.
-        num_dummies: Number of dummy FID acquisitions before the optimisation
-            starts. Defaults to 3.
-        show_plot: When `True`, display a three-panel figure showing the initial
-            vs. shimmed FID, the frequency spectrum, and the convergence curve.
-            Defaults to `False`.
+    Parameters
+    ----------
+    start_range
+        Initial gradient-offset step size in normalised mT/m units, by default 0.1.
+    end_range
+        Stopping threshold; the optimisation exits when the step size falls below
+        this value, by default 0.01.
+    num_dummies
+        Number of dummy FID acquisitions before the optimisation starts, by default 3.
+    show_plot
+        When `True`, display a three-panel figure showing the initial vs. shimmed FID,
+        the frequency spectrum, and the convergence curve, by default `False`.
 
-    Raises:
-        ValueError: If `console.parameter` is `None`.
+    Raises
+    ------
+    ValueError
+        If `console.parameter` is `None`.
 
     """
     if console.parameter is None:
@@ -122,7 +157,7 @@ def calibrate_shimming(
         _ = run_fid(f_0, shims_current_mv, seq)
 
     data = run_fid(f_0, shims_current_mv, seq)
-    initial_data = data.processed_data.squeeze()
+    initial_data = get_signal(data)
     initial_data_fft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(initial_data)))
     amp_best = np.max(np.abs(initial_data_fft))
     amp_data = [amp_best]
@@ -131,11 +166,11 @@ def calibrate_shimming(
         # X gradient positive step
         _shims = deepcopy(shims_best)
         _shims.x += (shim_step / 2)
-        acq_data = run_fid(f_0, _shims / gain_eff_prod, seq).processed_data.squeeze()
+        acq_data = get_signal(run_fid(f_0, _shims / gain_eff_prod, seq))
         amp_1 = np.max(np.abs(np.fft.fftshift(np.fft.fft(np.fft.fftshift(acq_data)))))
         # X gradient negative step
         _shims.x -= shim_step
-        acq_data = run_fid(f_0, _shims / gain_eff_prod, seq).processed_data.squeeze()
+        acq_data = get_signal(run_fid(f_0, _shims / gain_eff_prod, seq))
         amp_2 = np.max(np.abs(np.fft.fftshift(np.fft.fft(np.fft.fftshift(acq_data)))))
 
         if amp_1 > amp_2 and amp_1 > amp_best:
@@ -148,11 +183,11 @@ def calibrate_shimming(
         # Y gradient positive step
         _shims = deepcopy(shims_best)
         _shims.y += (shim_step / 2)
-        acq_data = run_fid(f_0, _shims / gain_eff_prod, seq).processed_data.squeeze()
+        acq_data = get_signal(run_fid(f_0, _shims / gain_eff_prod, seq))
         amp_1 = np.max(np.abs(np.fft.fftshift(np.fft.fft(np.fft.fftshift(acq_data)))))
         # Y gradient negative step
         _shims.y -= shim_step
-        acq_data = run_fid(f_0, _shims / gain_eff_prod, seq).processed_data.squeeze()
+        acq_data = get_signal(run_fid(f_0, _shims / gain_eff_prod, seq))
         amp_2 = np.max(np.abs(np.fft.fftshift(np.fft.fft(np.fft.fftshift(acq_data)))))
 
         if amp_1 > amp_2 and amp_1 > amp_best:
@@ -165,11 +200,11 @@ def calibrate_shimming(
         # Z gradient positive step
         _shims = deepcopy(shims_best)
         _shims.z += (shim_step / 2)
-        acq_data = run_fid(f_0, _shims / gain_eff_prod, seq).processed_data.squeeze()
+        acq_data = get_signal(run_fid(f_0, _shims / gain_eff_prod, seq))
         amp_1 = np.max(np.abs(np.fft.fftshift(np.fft.fft(np.fft.fftshift(acq_data)))))
         # Z gradient negative step
         _shims.z -= shim_step
-        acq_data = run_fid(f_0, _shims / gain_eff_prod, seq).processed_data.squeeze()
+        acq_data = get_signal(run_fid(f_0, _shims / gain_eff_prod, seq))
         amp_2 = np.max(np.abs(np.fft.fftshift(np.fft.fft(np.fft.fftshift(acq_data)))))
 
         if amp_1 > amp_2 and amp_1 > amp_best:
@@ -185,7 +220,7 @@ def calibrate_shimming(
         shim_step *= 0.75  # Decrease step size of shim range
 
     # FID with best shim setting
-    shimmed_data = run_fid(f_0, shims_best / gain_eff_prod, seq).processed_data.squeeze()
+    shimmed_data = get_signal(run_fid(f_0, shims_best / gain_eff_prod, seq))
     shimmed_data_fft = np.fft.fftshift(np.fft.fft(np.fft.fftshift(shimmed_data)))
     time_scale = np.arange(np.size(shimmed_data))*data.dwell_time
     fft_freq = np.fft.fftshift(np.fft.fftfreq(np.size(shimmed_data), data.dwell_time))

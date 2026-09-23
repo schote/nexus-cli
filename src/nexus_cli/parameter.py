@@ -68,7 +68,8 @@ def set_parameter(
     if channel_assignment is not None:
         param.channel_assignment = Dimensions(*channel_assignment)
     if ddc_method is not None:
-        param.ddc_method = ddc_method
+        # Already converted to DDCMethod by the option callback
+        param.ddc_method = DDCMethod(ddc_method)
     if num_averages is not None:
         param.num_averages = num_averages
     if averaging_delay is not None:

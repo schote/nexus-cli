@@ -4,7 +4,7 @@ Command-line interface for the [Nexus console](https://github.com/schote/nexus-c
 
 The CLI is a thin client for the running Nexus acquisition service. It provides a fast way to inspect the system, edit the global acquisition parameter, run basic calibrations and execute arbitrary Pulseq `.seq` files, without writing Python.
 
-This repository contains a minimal set of calibration routines (`f0`, `b1`, `shims`) and a generic sequence runner. Sequences and their headers must be created separately (e.g. with [PyPulseq](https://github.com/imr-framework/pypulseq)) and passed to `run-sequence`.
+This repository contains a minimal set of calibration routines (like `f0`, `b1`, `shims`) and a generic sequence runner. Sequences and their headers must be created separately, e.g. with [PyPulseq](https://github.com/imr-framework/pypulseq), and passed to `run-sequence`.
 
 ## Overview
 
@@ -16,6 +16,8 @@ This repository contains a minimal set of calibration routines (`f0`, `b1`, `shi
     - [`device-config`](#device-config)
     - [`sequence-system`](#sequence-system)
     - [`run-sequence`](#run-sequence)
+    - [`plot-sequence`](#plot-sequence)
+    - [`run-protocol`](#run-protocol)
     - [`parameter show`](#parameter-show)
     - [`parameter set`](#parameter-set)
     - [`calibrate f0`](#calibrate-f0)
@@ -54,7 +56,7 @@ The CLI runs next to the Nexus console service and needs to be installed on the 
    | Variable | Meaning |
    | --- | --- |
    | `NEXUS_PARAMETER_FILE` | Acquisition parameter state file (default is `~/nexus-console/acquisition-parameter.state`) |
-   | `NEXUS_EXPORT_DIR` | Export directory for `run-sequence`  (required unless `--export-dir` is given) |
+   | `NEXUS_EXPORT_DIR` | Export directory for `run-sequence` (required unless `--export-dir` is given) |
 
    Variables set in the shell take precedence over the file.
 
@@ -63,6 +65,15 @@ The CLI runs next to the Nexus console service and needs to be installed on the 
    ```bash
    uv run nexus-cli --help          # or: source .venv/bin/activate && nexus-cli --help
    ```
+
+### Optional: Install the CLI app as a tool
+
+When executed in the nexus-cli repository, the following command installs the CLI in its own isolated environment and links the executable onto `PATH`. This allows you to run commands like `nexus-cli ...` from anywhere (without the command prefix `uv run ...`).
+
+```bash
+uv tool install --editable .
+```
+
 
 ## Remote access via SSH
 
@@ -108,7 +119,7 @@ flowchart LR
 
 ## Command reference
 
-Append `--help` to any of the commands below to get instruction.
+Append `--help` to any of the commands below to get instructions.
 
 ### `device-config`
 
@@ -138,10 +149,47 @@ nexus-cli run-sequence --path tse_3d.seq --mrd-header-path tse_3d.xml --export-d
 | Option | Type | Description |
 | --- | --- | --- |
 | `--path` | path | Pulseq sequence file (`.seq`), required |
-| `--mrd-header-path` | path | ISMRMRD header (`.xml`). If given, the acquisition is saved as ISMRMRD file |
+| `--mrd-header-path` | path | ISMRMRD header (`.xml`). If given, the acquisition is saved as an ISMRMRD file |
 | `--export-dir` | path | Export directory, defaults to `NEXUS_EXPORT_DIR` |
 
 Without `--mrd-header-path` the sequence is executed, but no file is written.
+
+### `plot-sequence`
+
+Load a `.seq` file and plot it, either as Pulseq sequence or as waveforms unrolled by the Nexus service with the current acquisition parameter.
+
+```bash
+nexus-cli plot-sequence --path tse_3d.seq
+nexus-cli plot-sequence --path tse_3d.seq --plot-unrolled
+```
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--path` | path | | Pulseq sequence file (`.seq`), required |
+| `--plot-unrolled / --no-plot-unrolled` | flag | `--no-plot-unrolled` | Plot the unrolled waveforms instead of the Pulseq sequence |
+
+### `run-protocol`
+
+Run a protocol, i.e. a list of sequence and pause steps defined in a JSON file. Each sequence step is executed like `run-sequence` with the given header, a pause step waits for `duration` seconds. Relative paths are resolved against the directory of the protocol file.
+
+```bash
+nexus-cli run-protocol --path protocol.json
+```
+
+```json
+{
+  "name": "example",
+  "steps": [
+    {"type": "sequence", "sequence": "tse_3d.seq", "header": "tse_3d.xml"},
+    {"type": "pause", "duration": 10, "message": "Waiting"}
+  ]
+}
+```
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `--path` | path | Protocol file (`.json`), required |
+| `--export-dir` | path | Export directory, defaults to `NEXUS_EXPORT_DIR` |
 
 ### `parameter show`
 

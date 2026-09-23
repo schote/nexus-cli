@@ -1,9 +1,9 @@
+"""Gradient system test with a periodic train of trapezoidal gradients."""
 import console
-
 import pypulseq as pp
 import typer
-
 from nexus_service.acquisition_manager import AcquisitionControlManager
+
 from nexus_cli.system_tests import app
 from nexus_cli.utilities.acquisition import run_acquisition
 
@@ -16,18 +16,43 @@ def build_gradient_block(
     duty_cycle: float = 0.2,
     rise_time: float | None = None,
 ):
+    """Build a trapezoidal gradient which fills one period of the gradient test.
+
+    The gradient area corresponds to `duty_cycle` times the area of a rectangular gradient
+    with maximum amplitude over the whole period. The trapezoid is delayed to the end of the period.
+
+    Parameters
+    ----------
+    channel
+        Gradient channel, one of `x`, `y` or `z`.
+    system
+        PyPulseq system limits of the scanner.
+    max_amplitude
+        Gradient amplitude relative to the maximum gradient of `system`, by default 1.
+    period
+        Duration of one period in s, by default 0.1 s.
+    duty_cycle
+        Fraction of the period with gradient at maximum amplitude, by default 0.2.
+    rise_time
+        Rise time of the trapezoid in s. If None, the fastest rise time of `system` is used.
+
+    Returns
+    -------
+        PyPulseq trapezoidal gradient event.
+    """
     total_area = system.max_grad * period * max_amplitude
     grad = pp.make_trapezoid(
         channel=channel,
         area=duty_cycle*total_area,
         max_grad=system.max_grad*max_amplitude,
+        rise_time=rise_time,
     )
     grad.delay = period - pp.calc_duration(grad)
     return grad
 
 
-@app.command(name="gradient-pwm")
-def gradient_pwm(
+@app.command(name="gradient")
+def gradient_test(
     channels: str = "xyz",
     max_amplitude: float = 1.,
     period: float = 0.1,
@@ -36,6 +61,29 @@ def gradient_pwm(
     rise_time: float | None = None,
     show_plot: bool = False,
 ):
+    """Run a gradient test with a periodic train of trapezoidal gradients.
+
+    Prints the expected gradient strength, GPA output current and console output voltage per channel,
+    builds the sequence and runs it after confirmation with Enter. The sequence does not contain
+    ADC events, no data is acquired.
+
+    Parameters
+    ----------
+    channels
+        Gradient channels to play out, any combination of `x`, `y` and `z`, by default `xyz`.
+    max_amplitude
+        Gradient amplitude relative to the maximum gradient of the sequence system, by default 1.
+    period
+        Duration of one period in s, by default 0.1 s.
+    duty_cycle
+        Fraction of the period with gradient at maximum amplitude, by default 0.2.
+    total_duration
+        Total duration of the test in s, by default 300 s.
+    rise_time
+        Rise time of the trapezoids in s. If None, the fastest rise time of the sequence system is used.
+    show_plot
+        When `True`, plot the sequence before execution, by default `False`.
+    """
     with AcquisitionControlManager() as m:
         seq_sys = m.acquisition.get_sequence_system()
         dev_cfg = m.acquisition.get_device_configuration()

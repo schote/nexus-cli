@@ -4,7 +4,7 @@ Command-line interface for the [Nexus console](https://github.com/schote/nexus-c
 
 The CLI is a thin client for the running Nexus acquisition service. It provides a fast way to inspect the system, edit the global acquisition parameter, run basic calibrations and execute arbitrary Pulseq `.seq` files, without writing Python.
 
-This repository contains a minimal set of calibration routines (like `f0`, `b1`, `shims`) and a generic sequence runner. Sequences and their headers must be created separately, e.g. with [PyPulseq](https://github.com/imr-framework/pypulseq), and passed to `run-sequence`.
+This repository contains a minimal set of calibration routines (like `f0`, `b1`, `shims`), system tests (like `gradient`) and a generic sequence runner. Sequences and their headers must be created separately, e.g. with [PyPulseq](https://github.com/imr-framework/pypulseq), and passed to `run-sequence`.
 
 ## Overview
 
@@ -23,6 +23,7 @@ This repository contains a minimal set of calibration routines (like `f0`, `b1`,
     - [`calibrate f0`](#calibrate-f0)
     - [`calibrate b1`](#calibrate-b1)
     - [`calibrate shims`](#calibrate-shims)
+    - [`tests gradient`](#tests-gradient)
 
 ## Installation
 
@@ -274,3 +275,22 @@ nexus-cli calibrate shims --start-range 0.2 --end-range 0.005 --show-plot
 | `--show-plot / --no-show-plot` | flag | `--no-show-plot` | Show initial vs. shimmed FID, spectrum and convergence |
 
 Gradient offsets are always reset to zero before shimming starts.
+
+### `tests gradient`
+
+Play out a periodic train of trapezoidal gradients on the selected channels, e.g. to test gradient amplifiers and coils under load. Each period contains one trapezoid at the end of the period, its area corresponds to `--duty-cycle` times a rectangular gradient with maximum amplitude over the whole period. The expected gradient strength, GPA output current and console output voltage per channel are printed, and the sequence is only executed after confirmation with Enter. The sequence contains no ADC events, no data is acquired.
+
+```bash
+nexus-cli tests gradient
+nexus-cli tests gradient --channels x --max-amplitude 0.5 --duty-cycle 0.1 --total-duration 60 --show-plot
+```
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--channels` | str | `xyz` | Gradient channels, any combination of `x`, `y` and `z` |
+| `--max-amplitude` | float | `1.0` | Gradient amplitude relative to the maximum gradient of the sequence system |
+| `--period` | float | `0.1` | Duration of one period in s |
+| `--duty-cycle` | float | `0.2` | Fraction of the period with gradient at maximum amplitude |
+| `--total-duration` | float | `300` | Total duration of the test in s |
+| `--rise-time` | float | | Rise time of the trapezoids in s, defaults to the fastest rise time of the sequence system |
+| `--show-plot / --no-show-plot` | flag | `--no-show-plot` | Plot the sequence before execution |

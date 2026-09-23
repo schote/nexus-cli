@@ -1,0 +1,48 @@
+name: 'Static Tests'
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  # Branch of nexus-console, which is installed from the path source `../nexus-console`
+  # TODO: Remove this as soon as nexus-console main is compatible!
+  NEXUS_CONSOLE_REF: authentication
+
+jobs:
+  linting:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: nexus-cli
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: nexus-cli
+
+    - name: Checkout nexus-console
+      uses: actions/checkout@v4
+      with:
+        repository: schote/nexus-console
+        ref: ${{ env.NEXUS_CONSOLE_REF }}
+        path: nexus-console
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
+      run: uv sync --locked
+
+    - name: Run ruff check
+      run: uv run ruff check
+
+    - name: Run mypy
+      run: uv run mypy

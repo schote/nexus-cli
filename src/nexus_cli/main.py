@@ -120,7 +120,7 @@ def run_protocol(
                 run_sequence(path=step.sequence, mrd_header_path=step.header, export_dir=export_dir)
             case PauseStep():
                 with Console().status(f"{step.message}..."):
-                    if step.duration is not None:
+                    if step.duration is None:
                         sleep(3)
                     else:
                         sleep(step.duration)

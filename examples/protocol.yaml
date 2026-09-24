@@ -1,0 +1,25 @@
+# Example protocol for `nexus-cli run-protocol --path examples/protocol.yaml`.
+# The sequence and header paths are fictive, replace them with your own files.
+# Relative paths are resolved against the directory of this file.
+name: Brain T1/T2 example
+version: 1
+steps:
+  - type: sequence
+    sequence: sequences/localizer.seq
+    header: headers/localizer.xml
+
+  - type: pause
+    message: Check localizer and adjust FOV
+    # no duration -> wait for the user
+
+  - type: sequence
+    sequence: sequences/tse_3d_t1.seq
+    header: headers/tse_3d_t1.xml
+
+  - type: pause
+    duration: 30
+    message: Cooling down gradients
+
+  - type: sequence
+    sequence: sequences/tse_3d_t2.seq
+    header: headers/tse_3d_t2.xml

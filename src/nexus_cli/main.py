@@ -64,6 +64,7 @@ def run_sequence(
 @app.command(name="plot-sequence")
 def plot_sequence(
     path: str = Option(help="Path to pypulseq sequence file."),
+    time_range: tuple[float, float] = Option((0, 0.1), help = "Time range of the sequence plot in ms"),
     plot_unrolled: bool = Option(False, help="True -> unrolled sequence, False -> pulseq sequence"),
 ):
     """Plot a pypulseq sequence file.
@@ -87,9 +88,9 @@ def plot_sequence(
 
         if plot_unrolled:
             m.acquisition.set_sequence(sequence=seq, parameter=console.parameter)
-            m.acquisition.plot_waveforms()
+            m.acquisition.plot_waveforms(time_range)
         else:
-            seq.plot(show_blocks=False)
+            seq.plot(time_range=time_range, show_blocks=False)
         plt.show()
 
 @app.command(name="run-protocol")
@@ -110,6 +111,7 @@ def run_protocol(
 
     """
     protocol = Protocol.load(path)
+    Console().print(protocol)
     for step in protocol.steps:
         match step:
             case SequenceStep():

@@ -59,7 +59,8 @@ def run_sequence(
         if mrd_header_path is not None:
             header_path = Path(mrd_header_path)
             ensure_valid_header_file(header_path)
-            acq_data.save_ismrmrd(header=load_mrd_header(header_path), user_path=str(export_dir))
+            data_path = acq_data.save_ismrmrd(header=load_mrd_header(header_path), user_path=str(export_dir))
+            print(f"Stored acquisition data >> {data_path}")
 
 @app.command(name="plot-sequence")
 def plot_sequence(

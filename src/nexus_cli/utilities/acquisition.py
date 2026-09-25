@@ -7,7 +7,7 @@ from console.spcm_control.acquisition_control import AcquisitionControl
 from rich.progress import Progress
 
 
-def run_acquisition(acquisition: AcquisitionControl, description: str = "Running sequence") -> AcquisitionData:
+def run_acquisition(acquisition: AcquisitionControl, description: str = "Acquisition progress") -> AcquisitionData:
     """Run an acquisition and display its progress.
 
     The `run()` call of the acquisition control proxy blocks until the acquisition is finished.

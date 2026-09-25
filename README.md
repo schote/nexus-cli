@@ -187,9 +187,11 @@ nexus-cli run-protocol --path protocol.json
 }
 ```
 
+A YAML protocol is also accepted, see [`examples/protocol.yaml`](examples/protocol.yaml) for an example. A pause step without `duration` waits for the user.
+
 | Option | Type | Description |
 | --- | --- | --- |
-| `--path` | path | Protocol file (`.json`), required |
+| `--path` | path | Protocol file (`.json` or `.yaml`), required |
 | `--export-dir` | path | Export directory, defaults to `NEXUS_EXPORT_DIR` |
 
 ### `parameter show`

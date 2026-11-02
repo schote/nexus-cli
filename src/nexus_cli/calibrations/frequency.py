@@ -91,6 +91,6 @@ def calibrate_larmor_frequency(show_plot: bool = True, min_snr: float = 20.) -> 
         ax[1].set_ylim([0, max_spec * 1.05])
         ax[1].set_ylabel("Abs. FFT Spectrum [a.u.]")
         ax[1].set_xlabel("Frequency [Hz]")
-        plt.show(block=False)
+        plt.show()
     print("Done.")
 

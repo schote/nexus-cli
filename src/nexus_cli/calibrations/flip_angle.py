@@ -141,5 +141,5 @@ def calibrate_flip_angle(
         ax.legend()
         ax.set_ylabel("Signal integral")
         ax.set_xlabel("Flip angle / °")
-        plt.show(block=False)
+        plt.show()
     print("Done.")
